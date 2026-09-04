@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Сварочный стол PRO 2000x1000 мм | СТАРК-ПРОФИ</title>
+    <title>Сварочный стол D16 2000×1000 мм | СТАРК-ПРОФИ</title>
+    <meta name="description" content="Прецизионный сборочно-сварочный стол системы D16 размером 2000х1000х100 мм от завода Старк-Профи. Сталь 09Г2С, SSAB, плазменное азотирование.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -26,11 +27,56 @@
             }
         }
     </script>
-    <script src="js/main.js"></script>
+    <script defer src="js/products-data.js"></script>
+    <script defer src="js/main.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/mask@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
-<body class="bg-neutral text-primary-dark antialiased" x-data>
+<body class="bg-neutral text-primary-dark antialiased" x-data="{
+    // Конфигуратор для стола 2000х1000 D16
+    series: 'ПРО', // 'Стандарт' | 'ПРО'
+    thickness: 10, // 8 | 10 | 12
+    material: '09g2s', // '09g2s' | 'ssab' | 'nitro'
+    withLegs: true, // с опорами / без опор
+    legsPrice: 16500, // стоимость 6 опор для стола 2000х1000 по прайсу
+
+    // Точная таблица цен из прайсов Старк-Профи для размера 2000х1000
+    prices: {
+        'Стандарт_8': { '09g2s': 81000, 'ssab': 94260, 'nitro': 150500, art: 'spt16.2010.80' },
+        'Стандарт_10': { '09g2s': 99525, 'ssab': 117660, 'nitro': 185500, art: 'spt16.2010.10' },
+        'Стандарт_12': { '09g2s': 123900, 'ssab': 162450, 'nitro': 210500, art: 'spt16.2010.12' },
+        'ПРО_8': { '09g2s': 98800, 'ssab': 104260, 'nitro': 167500, art: 'spt16.2010.80pro' },
+        'ПРО_10': { '09g2s': 115145, 'ssab': 133260, 'nitro': 200500, art: 'spt16.2010.10pro' },
+        'ПРО_12': { '09g2s': 133900, 'ssab': 172450, 'nitro': 230500, art: 'spt16.2010.12pro' }
+    },
+
+    get currentConfig() {
+        const key = `${this.series}_${this.thickness}`;
+        return this.prices[key] || this.prices['ПРО_10'];
+    },
+
+    get currentPrice() {
+        let base = this.currentConfig[this.material] || 0;
+        if (this.withLegs) base += this.legsPrice;
+        return base;
+    },
+
+    formatPrice(val) {
+        return val ? val.toLocaleString('ru-RU') + ' ₽' : 'По запросу';
+    },
+
+    addToCart() {
+        const matName = this.material === '09g2s' ? '09Г2С' : (this.material === 'ssab' ? 'SSAB' : 'Азотирование');
+        $store.cart.addItem({
+            id: `table_2000_${this.series}_${this.thickness}_${this.material}_${this.withLegs ? 'legs' : 'nolegs'}`,
+            name: `Стол D16 ${this.series} 2000×1000×100 (${this.thickness} мм)`,
+            article: this.currentConfig.art,
+            price: this.currentPrice,
+            qty: 1,
+            details: `${matName}, ${this.withLegs ? 'в сборе с опорами' : 'без опор'}`
+        });
+    }
+}">
 
     <!-- HEADER -->
     <header class="bg-primary-dark border-b border-slate-800 text-white">
@@ -41,65 +87,102 @@
             </a>
             <nav class="hidden lg:flex items-center gap-8 text-sm">
                 <a href="index.html" class="hover:text-accent">Главная</a>
-                <a href="catalog.html" class="hover:text-accent">Каталог</a>
+                <a href="catalog.html" class="hover:text-accent">Каталог столов</a>
                 <a href="technology.html" class="hover:text-accent">О технологии</a>
-                <a href="delivery.html" class="hover:text-accent">Доставка</a>
+                <a href="delivery.html" class="hover:text-accent">Доставка и оплата</a>
                 <a href="contacts.html" class="hover:text-accent">Контакты</a>
             </nav>
-            <button @click="$store.app.openModal()" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs font-semibold px-4 py-2.5 rounded">Запросить КП</button>
+            <div class="flex items-center gap-3">
+                <button @click="$store.cart.toggle()" class="relative flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-3.5 py-2 rounded-md border border-slate-700 transition-colors">
+                    <i class="fa-solid fa-cart-shopping text-accent"></i>
+                    <span x-show="$store.cart && $store.cart.totalCount > 0" x-text="$store.cart.totalCount" class="bg-accent text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center -mr-1"></span>
+                </button>
+                <button @click="$store.app.openModal('КП со страницы товара')" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs font-semibold px-4 py-2.5 rounded">Запросить счет</button>
+            </div>
         </div>
     </header>
 
     <!-- PRODUCT DETAIL -->
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12" x-data="{
-        thickness: 12,
-        nitriding: true,
-        basePrice: 114000,
-        get totalPrice() {
-            let p = this.basePrice;
-            if (this.thickness === 16) p += 32000;
-            if (this.nitriding) p += 26000;
-            return p.toLocaleString('ru-RU') + ' ₽';
-        }
-    }">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            <!-- Визуальный блок / Чертеж -->
-            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[380px] tabletop-holes">
-                <i class="fa-solid fa-table-cells-large text-8xl text-slate-400/70 mb-4"></i>
-                <span class="font-bold text-slate-800 text-lg">Сборочно-сварочный 3D-стол D28</span>
-                <span class="text-xs text-slate-500">Координатная сетка 100х100 мм · 5 рабочих сторон с бортами 200 мм</span>
+            
+            <!-- Левая колонка: Визуализация стола D16 и чертеж -->
+            <div class="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-8 flex flex-col items-center justify-center min-h-[420px] tabletop-holes shadow-sm">
+                <i class="fa-solid fa-table-cells text-8xl text-slate-400/70 mb-4"></i>
+                <span class="font-extrabold text-slate-800 text-xl">Сварочный 3D-стол «Старк-Профи D16»</span>
+                <span class="text-xs text-slate-500 mt-1">Габариты: 2000 × 1000 × 100 мм · Координатная сетка 50 × 50 мм</span>
+                <div class="mt-6 flex flex-wrap gap-2 justify-center">
+                    <span class="text-[11px] font-bold bg-slate-200/70 text-slate-700 px-3 py-1 rounded">Отверстия Ø16 мм</span>
+                    <span class="text-[11px] font-bold bg-slate-200/70 text-slate-700 px-3 py-1 rounded">5 рабочих сторон</span>
+                    <span class="text-[11px] font-bold bg-orange-100 text-orange-800 px-3 py-1 rounded">Нагрузка до 2500 кг</span>
+                </div>
             </div>
 
-            <!-- Конфигуратор и заказ -->
-            <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col gap-6">
+            <!-- Правая колонка: Конфигуратор и заказ -->
+            <div class="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 flex flex-col gap-6 shadow-sm">
                 <div>
-                    <span class="text-xs font-bold uppercase tracking-wider text-accent">Система D28 PRO</span>
-                    <h1 class="text-2xl font-extrabold text-slate-900 mt-1">Стол сварочный 2000 × 1000 мм</h1>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-xs font-bold uppercase tracking-wider text-accent">Система D16</span>
+                        <span class="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded" x-text="'Арт: ' + currentConfig.art"></span>
+                    </div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">Стол сварочный 2000 × 1000 мм</h1>
                 </div>
 
+                <!-- 1. Выбор серии -->
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-2">Толщина рабочей плиты</label>
-                    <div class="grid grid-cols-2 gap-3">
-                        <button type="button" @click="thickness = 12" :class="thickness === 12 ? 'border-accent bg-orange-50 text-accent font-bold' : 'border-slate-300 text-slate-600'" class="border py-2.5 rounded-md text-sm text-center">12 мм (Стандарт)</button>
-                        <button type="button" @click="thickness = 16" :class="thickness === 16 ? 'border-accent bg-orange-50 text-accent font-bold' : 'border-slate-300 text-slate-600'" class="border py-2.5 rounded-md text-sm text-center">16 мм (Heavy)</button>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Серия конструкции</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" @click="series = 'Стандарт'" :class="series === 'Стандарт' ? 'border-accent bg-orange-50 text-accent font-bold' : 'border-slate-300 text-slate-600'" class="border py-2.5 rounded-lg text-xs transition-colors">Стандарт (для сборки)</button>
+                        <button type="button" @click="series = 'ПРО'" :class="series === 'ПРО' ? 'border-accent bg-orange-50 text-accent font-bold' : 'border-slate-300 text-slate-600'" class="border py-2.5 rounded-lg text-xs transition-colors">ПРО (Усиленный)</button>
                     </div>
                 </div>
 
+                <!-- 2. Выбор толщины металла -->
                 <div>
-                    <label class="block text-xs font-semibold uppercase text-slate-500 mb-2">Обработка поверхности</label>
-                    <label class="flex items-center justify-between border border-slate-300 p-3 rounded-md cursor-pointer hover:border-accent">
-                        <span class="text-sm font-medium text-slate-800">Плазменное азотирование</span>
-                        <input type="checkbox" x-model="nitriding" class="w-4 h-4 text-accent focus:ring-accent">
-                    </label>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Толщина столешницы</label>
+                    <div class="grid grid-cols-3 gap-2">
+                        <button type="button" @click="thickness = 8" :class="thickness === 8 ? 'border-accent bg-orange-50 text-accent font-bold' : 'border-slate-300 text-slate-600'" class="border py-2 text-xs rounded-lg transition-colors">8.0 мм</button>
+                        <button type="button" @click="thickness = 10" :class="thickness === 10 ? 'border-accent bg-orange-50 text-accent font-bold' : 'border-slate-300 text-slate-600'" class="border py-2 text-xs rounded-lg transition-colors">10.0 мм</button>
+                        <button type="button" @click="thickness = 12" :class="thickness === 12 ? 'border-accent bg-orange-50 text-accent font-bold' : 'border-slate-300 text-slate-600'" class="border py-2 text-xs rounded-lg transition-colors">12.0 мм</button>
+                    </div>
                 </div>
 
+                <!-- 3. Выбор стали и термообработки -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Материал рабочей плиты</label>
+                    <div class="flex flex-col gap-2 text-xs">
+                        <label class="flex items-center justify-between border border-slate-300 p-2.5 rounded-lg cursor-pointer hover:border-accent">
+                            <span class="font-medium text-slate-800">Сталь 09Г2С (Конструкционная)</span>
+                            <input type="radio" name="mat" value="09g2s" x-model="material" class="text-accent focus:ring-accent">
+                        </label>
+                        <label class="flex items-center justify-between border border-slate-300 p-2.5 rounded-lg cursor-pointer hover:border-accent">
+                            <span class="font-medium text-slate-800">Шведская износостойкая сталь SSAB</span>
+                            <input type="radio" name="mat" value="ssab" x-model="material" class="text-accent focus:ring-accent">
+                        </label>
+                        <label class="flex items-center justify-between border border-slate-300 p-2.5 rounded-lg cursor-pointer hover:border-accent">
+                            <span class="font-medium text-slate-800">Плазменное азотирование (защита от брызг)</span>
+                            <input type="radio" name="mat" value="nitro" x-model="material" class="text-accent focus:ring-accent">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 4. Переключатель опор -->
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-500 mb-2">Комплектация опорами</label>
+                    <div class="grid grid-cols-2 p-1 bg-slate-100 border border-slate-300 rounded-lg">
+                        <button type="button" @click="withLegs = false" :class="!withLegs ? 'bg-white text-slate-900 font-bold shadow-sm' : 'text-slate-500 font-medium'" class="py-2 text-xs rounded-md transition-all">Без опор</button>
+                        <button type="button" @click="withLegs = true" :class="withLegs ? 'bg-accent text-white font-bold shadow-sm' : 'text-slate-500 font-medium'" class="py-2 text-xs rounded-md transition-all">С опорами (+16 500 ₽)</button>
+                    </div>
+                </div>
+
+                <!-- Итог и добавление в корзину -->
                 <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
                     <div>
-                        <span class="text-xs text-slate-400 block">Итоговая стоимость</span>
-                        <span class="text-2xl font-extrabold text-slate-900" x-text="totalPrice"></span>
+                        <span class="text-xs text-slate-400 block">Стоимость позиции</span>
+                        <span class="text-2xl font-black text-slate-900" x-text="formatPrice(currentPrice)"></span>
                     </div>
-                    <button @click="$store.app.openModal('D28 2000x1000')" class="btn-glow bg-accent hover:bg-accent-light text-white font-bold text-sm px-6 py-3 rounded-md transition-colors">
-                        Заказать счет
+                    <button @click="addToCart()" class="btn-glow bg-accent hover:bg-accent-light text-white font-bold text-xs sm:text-sm px-6 py-3.5 rounded-lg transition-colors flex items-center gap-2">
+                        <i class="fa-solid fa-cart-plus"></i> В корзину
                     </button>
                 </div>
             </div>
@@ -107,16 +190,16 @@
     </div>
 
     <!-- FOOTER -->
-    <footer class="bg-slate-900 border-t border-slate-800 text-slate-400 py-6 text-center text-xs">
-        © 2026 СТАРК-ПРОФИ. Все права защищены.
+    <footer class="bg-slate-900 border-t border-slate-800 text-slate-400 py-8 text-center text-xs">
+        © 2026 СТАРК-ПРОФИ. Завод сборочно-сварочных столов D16.
     </footer>
 
     <!-- MODAL WINDOW -->
     <div x-show="$store.app.isModalOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" @click="$store.app.closeModal()"></div>
-        <div class="relative w-full max-w-lg rounded-xl bg-white p-6 z-10">
+        <div class="relative w-full max-w-lg rounded-xl bg-white p-6 z-10 shadow-2xl">
             <h3 class="font-bold text-lg mb-4 text-slate-900">Запрос коммерческого предложения</h3>
-            <button @click="$store.app.closeModal()" class="w-full bg-accent text-white font-bold py-2 rounded">Закрыть</button>
+            <button @click="$store.app.closeModal()" class="w-full bg-accent text-white font-bold py-2.5 rounded">Закрыть</button>
         </div>
     </div>
 
