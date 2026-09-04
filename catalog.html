@@ -44,8 +44,8 @@
     selectedSeries: 'all', // 'all' | 'Стандарт' | 'ПРО'
     selectedThickness: 'all', // 'all' | 8 | 10 | 12
     selectedMaterial: '09g2s', // '09g2s' | 'ssab' | 'nitro'
-    withLegs: false, // Отдельный переключатель опор (В сборе с опорами)
-    toolingCat: 'all', // 'all' | 'bolts' | 'clamps' | 'stops' | 'squares' | 'prisms' | 'accessories'
+    withLegs: false, // true = В сборе с опорами, false = Только столешница
+    toolingCat: 'all',
 
     // Расчет стоимости опор для конкретного размера стола
     getLegsPrice(dim) {
@@ -76,7 +76,6 @@
         return val.toLocaleString('ru-RU') + ' ₽';
     },
 
-    // Вычисляемые списки с фильтрацией
     get filteredTables() {
         return this.tables.filter(t => {
             const matchSeries = this.selectedSeries === 'all' || t.series === this.selectedSeries;
@@ -198,42 +197,45 @@
 
         <!-- ================= ВКЛАДКА 1: СВАРОЧНЫЕ СТОЛЫ ================= -->
         <div x-show="activeTab === 'tables'" x-transition.opacity>
-            <!-- Блок интерактивных фильтров столов -->
+            <!-- Блок фильтров столов -->
             <div class="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 mb-8 shadow-sm">
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-end">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-end">
                     
                     <!-- 1. Выбор стали и покрытия -->
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Сталь / Покрытие</label>
+                    <div class="lg:col-span-4">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Сталь и защитное покрытие</label>
                         <select x-model="selectedMaterial" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-3.5 py-2.5 text-sm font-medium focus:border-accent focus:ring-1 focus:ring-accent outline-none">
                             <option value="09g2s">Конструкционная сталь 09Г2С</option>
-                            <option value="ssab">Шведская сталь SSAB</option>
+                            <option value="ssab">Шведская износостойкая сталь SSAB</option>
                             <option value="nitro">Плазменное азотирование</option>
                         </select>
                     </div>
 
-                    <!-- 2. ВЫДЕЛЕННАЯ КНОПКА ВЫБОРА ОПОР -->
-                    <div>
+                    <!-- 2. ДВУХПОЗИЦИОННЫЙ ПЕРЕКЛЮЧАТЕЛЬ ОПОР (ПОНЯТНОЕ ВКЛ/ВЫКЛ) -->
+                    <div class="lg:col-span-3">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Комплектация опорами</label>
-                        <button type="button" 
-                                @click="withLegs = !withLegs"
-                                :class="withLegs ? 'bg-accent text-white border-accent shadow-md' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" 
-                                class="w-full border rounded-lg px-4 py-2.5 text-xs sm:text-sm font-bold flex items-center justify-between transition-all">
-                            <span class="flex items-center gap-2">
-                                <i class="fa-solid fa-arrows-up-down text-base" :class="withLegs ? 'text-white' : 'text-accent'"></i>
-                                <span>В сборе с опорами</span>
-                            </span>
-                            <span class="text-xs px-2 py-0.5 rounded uppercase font-semibold"
-                                  :class="withLegs ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'"
-                                  x-text="withLegs ? 'ВКЛ' : 'ВЫКЛ'">
-                            </span>
-                        </button>
+                        <div class="grid grid-cols-2 p-1 bg-slate-100 border border-slate-300 rounded-lg">
+                            <button type="button"
+                                    @click="withLegs = false"
+                                    :class="!withLegs ? 'bg-white text-slate-900 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-900 font-medium'"
+                                    class="py-2 text-xs rounded-md transition-all flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-minus text-[10px]" :class="!withLegs ? 'text-slate-400' : 'text-transparent'"></i>
+                                Без опор
+                            </button>
+                            <button type="button"
+                                    @click="withLegs = true"
+                                    :class="withLegs ? 'bg-accent text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-900 font-medium'"
+                                    class="py-2 text-xs rounded-md transition-all flex items-center justify-center gap-1.5">
+                                <i class="fa-solid fa-check text-[11px]" :class="withLegs ? 'text-white' : 'text-transparent'"></i>
+                                С опорами
+                            </button>
+                        </div>
                     </div>
 
                     <!-- 3. Выбор толщины столешницы -->
-                    <div>
+                    <div class="lg:col-span-3">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Толщина плиты</label>
-                        <div class="grid grid-cols-4 gap-1.5">
+                        <div class="grid grid-cols-4 gap-1">
                             <button type="button" @click="selectedThickness = 'all'" :class="selectedThickness === 'all' ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" class="border py-2 text-xs font-bold rounded-lg transition-colors">Все</button>
                             <button type="button" @click="selectedThickness = 8" :class="selectedThickness === 8 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" class="border py-2 text-xs font-bold rounded-lg transition-colors">8 мм</button>
                             <button type="button" @click="selectedThickness = 10" :class="selectedThickness === 10 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" class="border py-2 text-xs font-bold rounded-lg transition-colors">10 мм</button>
@@ -242,11 +244,11 @@
                     </div>
 
                     <!-- 4. Выбор серии: Стандарт / ПРО -->
-                    <div>
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Серия каркаса</label>
-                        <div class="grid grid-cols-3 gap-1.5">
+                    <div class="lg:col-span-2">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Серия</label>
+                        <div class="grid grid-cols-3 gap-1">
                             <button type="button" @click="selectedSeries = 'all'" :class="selectedSeries === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100'" class="py-2 text-xs font-bold rounded-lg transition-colors">Все</button>
-                            <button type="button" @click="selectedSeries = 'Стандарт'" :class="selectedSeries === 'Стандарт' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100'" class="py-2 text-xs font-bold rounded-lg transition-colors">Стандарт</button>
+                            <button type="button" @click="selectedSeries = 'Стандарт'" :class="selectedSeries === 'Стандарт' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100'" class="py-2 text-xs font-bold rounded-lg transition-colors">Стд</button>
                             <button type="button" @click="selectedSeries = 'ПРО'" :class="selectedSeries === 'ПРО' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100'" class="py-2 text-xs font-bold rounded-lg transition-colors">ПРО</button>
                         </div>
                     </div>
@@ -267,7 +269,7 @@
                             <h3 class="text-lg font-extrabold text-slate-900 mb-1" x-text="'Стол D16 ' + item.dim"></h3>
                             <p class="text-xs text-slate-500 mb-4">Координатные отверстия Ø16 мм с шагом сетки 50×50 мм</p>
 
-                            <div class="bg-slate-50 rounded-lg p-3 text-xs text-slate-700 flex flex-col gap-1.5 mb-6 border border-slate-100">
+                            <div class="bg-slate-50 rounded-lg p-3 text-xs text-slate-700 flex flex-col gap-2 mb-6 border border-slate-100">
                                 <div class="flex justify-between">
                                     <span class="text-slate-500">Толщина столешницы:</span>
                                     <strong class="text-slate-900" x-text="item.thickness + ' мм'"></strong>
@@ -276,10 +278,18 @@
                                     <span class="text-slate-500">Габариты поля:</span>
                                     <strong class="text-slate-900" x-text="item.dim.split('х100')[0] + ' мм'"></strong>
                                 </div>
-                                <div class="flex justify-between">
-                                    <span class="text-slate-500">Опоры:</span>
-                                    <strong :class="withLegs ? 'text-accent font-bold' : 'text-slate-700'" 
-                                            x-text="withLegs ? 'В комплекте (+' + formatPrice(getLegsPrice(item.dim)) + ')' : 'Без опор (только столешница)'"></strong>
+                                <div class="flex justify-between items-center pt-1 border-t border-slate-200">
+                                    <span class="text-slate-500">Комплектация:</span>
+                                    <template x-if="withLegs">
+                                        <span class="inline-flex items-center gap-1 font-bold text-accent bg-orange-50 px-2 py-0.5 rounded border border-orange-200 text-[11px]">
+                                            <i class="fa-solid fa-check"></i> С опорами (+<span x-text="formatPrice(getLegsPrice(item.dim))"></span>)
+                                        </span>
+                                    </template>
+                                    <template x-if="!withLegs">
+                                        <span class="inline-flex items-center gap-1 text-slate-500 bg-slate-200/60 px-2 py-0.5 rounded text-[11px]">
+                                            Только столешница
+                                        </span>
+                                    </template>
                                 </div>
                             </div>
                         </div>
@@ -289,7 +299,7 @@
                                 <span class="block text-[11px] text-slate-400">Итоговая стоимость</span>
                                 <span class="text-lg font-black text-slate-900" x-text="formatPrice(getPrice(item))"></span>
                             </div>
-                            <button @click="$store.app.openModal(item.name + ' [' + item.art + ']' + (withLegs ? ' (с опорами)' : ' (без опор)'))" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors">
+                            <button @click="$store.app.openModal(item.name + ' [' + item.art + ']' + (withLegs ? ' (в сборе с опорами)' : ' (без опор)'))" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors">
                                 Запросить счет
                             </button>
                         </div>
@@ -327,7 +337,6 @@
 
         <!-- ================= ВКЛАДКА 3: ОСНАСТКА И ИНСТРУМЕНТ ================= -->
         <div x-show="activeTab === 'tooling'" x-transition.opacity>
-            <!-- Фильтр категорий оснастки -->
             <div class="flex flex-wrap items-center gap-2 mb-8">
                 <button @click="toolingCat = 'all'" :class="toolingCat === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Все комплектующие</button>
                 <button @click="toolingCat = 'clamps'" :class="toolingCat === 'clamps' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Струбцины и зажимы</button>
@@ -338,7 +347,6 @@
                 <button @click="toolingCat = 'accessories'" :class="toolingCat === 'accessories' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Тележки и химия</button>
             </div>
 
-            <!-- Сетка карточек оснастки -->
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <template x-for="item in filteredTooling" :key="item.id">
                     <div class="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between card-equipment shadow-sm">
