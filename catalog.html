@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Каталог сварочных столов D16 и оснастки | СТАРК-ПРОФИ</title>
-    <meta name="description" content="Каталог профессиональных сборочно-сварочных столов D16 (Стандарт и ПРО), наборов оснастки и комплектующих от завода «Старк-Профи». Сталь 09Г2С, SSAB, плазменное азотирование.">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,27 +26,30 @@
             }
         }
     </script>
-    <!-- Скрипты приложения и база данных из прайса -->
     <script src="js/products-data.js"></script>
     <script src="js/main.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/mask@3.x.x/dist/cdn.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body class="bg-neutral text-primary-dark antialiased" x-data="{
-    // Данные из файла js/products-data.js
     tables: window.STARK_DATA ? window.STARK_DATA.tables : [],
     kits: window.STARK_DATA ? window.STARK_DATA.kits : [],
     tooling: window.STARK_DATA ? window.STARK_DATA.tooling : [],
 
-    // Состояние фильтров
-    activeTab: 'tables', // 'tables' | 'kits' | 'tooling'
-    selectedSeries: 'all', // 'all' | 'Стандарт' | 'ПРО'
-    selectedThickness: 'all', // 'all' | 8 | 10 | 12
-    selectedMaterial: '09g2s', // '09g2s' | 'ssab' | 'nitro'
-    withLegs: false, // true = В сборе с опорами, false = Только столешница
+    activeTab: 'tables',
+    selectedSeries: 'all',
+    selectedThickness: 'all',
+    selectedMaterial: '09g2s',
+    withLegs: false,
     toolingCat: 'all',
 
-    // Расчет стоимости опор для конкретного размера стола
+    getMaterialTitle() {
+        if (this.selectedMaterial === '09g2s') return 'Сталь 09Г2С';
+        if (this.selectedMaterial === 'ssab') return 'Сталь SSAB';
+        if (this.selectedMaterial === 'nitro') return 'Азотирование';
+        return '';
+    },
+
     getLegsPrice(dim) {
         if (dim.includes('1200х800')) return 11400;
         if (dim.includes('1450х950')) return 11600;
@@ -57,7 +59,6 @@
         return 11400;
     },
 
-    // Расчет итоговой цены стола с учетом материала и опции опор
     getPrice(table) {
         let base = 0;
         if (this.selectedMaterial === '09g2s') base = table.price_09g2s;
@@ -65,9 +66,7 @@
         else if (this.selectedMaterial === 'nitro') base = table.price_nitro;
 
         if (!base) return null;
-        if (this.withLegs) {
-            base += this.getLegsPrice(table.dim);
-        }
+        if (this.withLegs) base += this.getLegsPrice(table.dim);
         return base;
     },
 
@@ -85,20 +84,37 @@
     },
 
     get filteredTooling() {
-        return this.tooling.filter(t => {
-            return this.toolingCat === 'all' || t.cat === this.toolingCat;
+        return this.tooling.filter(t => this.toolingCat === 'all' || t.cat === this.toolingCat);
+    },
+
+    // Добавление стола в корзину с учетом текущих фильтров
+    addTableToCart(table) {
+        const price = this.getPrice(table);
+        if (!price) {
+            alert('Данное исполнение рассчитывается по запросу у инженера');
+            return;
+        }
+        const configDetails = `${this.getMaterialTitle()}, ${this.withLegs ? 'в сборе с опорами' : 'без опор'}`;
+        const cartItemId = `${table.id}_${this.selectedMaterial}_${this.withLegs ? 'legs' : 'nolegs'}`;
+
+        $store.cart.addItem({
+            id: cartItemId,
+            name: `Сварочный стол Старк-Профи ${table.series} d16 ${table.dim} (${table.thickness} мм)`,
+            article: table.art,
+            price: price,
+            qty: 1,
+            details: configDetails
         });
     }
 }">
 
     <!-- HEADER -->
-    <header class="relative z-50">
+    <header class="relative z-40">
         <div class="bg-slate-950 text-slate-300 text-xs sm:text-sm">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-col sm:flex-row items-center justify-between gap-2">
                 <div class="flex flex-wrap items-center justify-center sm:justify-start gap-x-5 gap-y-1">
                     <span class="flex items-center gap-1.5"><i class="fa-regular fa-clock text-accent"></i> Пн–Пт: 08:00–18:00 (МСК)</span>
                     <span class="flex items-center gap-1.5"><i class="fa-solid fa-truck-fast text-accent"></i> Отгрузка с завода по РФ и СНГ</span>
-                    <a href="mailto:info@stark-profi.ru" class="hidden md:flex items-center gap-1.5 hover:text-accent transition-colors"><i class="fa-regular fa-envelope text-accent"></i> info@stark-profi.ru</a>
                 </div>
                 <div class="flex items-center gap-3">
                     <a href="tel:88001015553" class="flex items-center gap-1.5 font-semibold text-white hover:text-accent transition-colors"><i class="fa-solid fa-phone text-accent"></i> 8-800-101-55-53</a>
@@ -128,36 +144,24 @@
                         <a href="contacts.html" class="text-sm font-medium text-slate-200 hover:text-accent transition-colors">Контакты</a>
                     </nav>
 
+                    <!-- Блок кнопок: Корзина + Быстрое КП -->
                     <div class="flex items-center gap-3">
-                        <button @click="$store.app.openModal('Каталог D16')" class="btn-glow hidden sm:inline-flex items-center gap-2 bg-accent hover:bg-accent-light text-white text-sm font-semibold px-5 py-2.5 rounded-md transition-colors shadow-lg">
-                            <i class="fa-solid fa-file-invoice"></i> Запросить КП
+                        <!-- Кнопка Корзины -->
+                        <button @click="$store.cart.toggle()" class="relative flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-4 py-2.5 rounded-md border border-slate-700 transition-colors shadow-md">
+                            <i class="fa-solid fa-cart-shopping text-accent"></i>
+                            <span class="hidden sm:inline text-xs font-semibold">Корзина</span>
+                            <span x-show="$store.cart.totalCount > 0" x-text="$store.cart.totalCount" class="bg-accent text-white text-[11px] font-extrabold w-5 h-5 rounded-full flex items-center justify-center -mr-1"></span>
                         </button>
+
+                        <button @click="$store.app.openModal('Консультация из шапки')" class="btn-glow hidden sm:inline-flex items-center gap-2 bg-accent hover:bg-accent-light text-white text-xs font-semibold px-4 py-2.5 rounded-md transition-colors shadow-lg">
+                            <i class="fa-solid fa-file-invoice"></i> Быстрое КП
+                        </button>
+
                         <button @click="$store.app.toggleMobileMenu()" class="lg:hidden w-10 h-10 flex items-center justify-center rounded-md text-slate-200 hover:bg-slate-800 transition-colors">
                             <i class="fa-solid fa-bars text-xl"></i>
                         </button>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Mobile Drawer -->
-        <div x-show="$store.app.isMobileMenuOpen" x-transition.opacity x-cloak class="fixed inset-0 z-[60] bg-slate-950/70 lg:hidden" @click="$store.app.closeMobileMenu()"></div>
-        <div x-show="$store.app.isMobileMenuOpen" x-transition x-cloak class="fixed top-0 right-0 z-[70] h-full w-full max-w-sm bg-slate-900 shadow-2xl lg:hidden flex flex-col">
-            <div class="flex items-center justify-between px-5 h-20 border-b border-slate-800">
-                <span class="text-lg font-extrabold text-white">СТАРК-ПРОФИ</span>
-                <button @click="$store.app.closeMobileMenu()" class="w-10 h-10 flex items-center justify-center rounded-md text-slate-300 hover:bg-slate-800"><i class="fa-solid fa-xmark text-xl"></i></button>
-            </div>
-            <nav class="flex-1 overflow-y-auto px-5 py-6 flex flex-col gap-2">
-                <a href="index.html" class="py-2.5 text-base font-medium text-slate-200 hover:text-accent">Главная</a>
-                <a href="catalog.html" class="py-2.5 text-base font-medium text-accent">Каталог (D16 / Оснастка)</a>
-                <a href="technology.html" class="py-2.5 text-base font-medium text-slate-200 hover:text-accent">О технологии</a>
-                <a href="delivery.html" class="py-2.5 text-base font-medium text-slate-200 hover:text-accent">Доставка и оплата</a>
-                <a href="contacts.html" class="py-2.5 text-base font-medium text-slate-200 hover:text-accent">Контакты</a>
-            </nav>
-            <div class="px-5 pb-6 pt-2 border-t border-slate-800">
-                <button @click="$store.app.openModal('Каталог D16'); $store.app.closeMobileMenu()" class="w-full inline-flex items-center justify-center gap-2 bg-accent hover:bg-accent-light text-white text-sm font-semibold px-5 py-3 rounded-md transition-colors">
-                    <i class="fa-solid fa-file-invoice"></i> Запросить расчет
-                </button>
             </div>
         </div>
     </header>
@@ -168,15 +172,14 @@
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <div class="inline-flex items-center gap-2 bg-slate-800 text-accent-light px-3 py-1 rounded text-xs font-bold uppercase tracking-wider mb-2">
-                        <i class="fa-solid fa-layer-group"></i> Номенклатура завода
+                        <i class="fa-solid fa-layer-group"></i> Номенклатура завода D16
                     </div>
-                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Каталог продукции Системы D16</h1>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold tracking-tight">Каталог оборудования и оснастки</h1>
                     <p class="text-sm text-slate-400 mt-2 max-w-2xl">
-                        Сварочные столы с координатной сеткой 50×50 мм, готовые комплекты с заводской оснасткой, струбцины, упоры и быстрозажимные болты.
+                        Добавляйте в корзину столы нужных размеров и комплектующие, чтобы получить единый счет со спецификацией и скидкой на объем.
                     </p>
                 </div>
                 
-                <!-- Вкладки категорий -->
                 <div class="inline-flex p-1.5 rounded-lg bg-slate-800/80 border border-slate-700">
                     <button @click="activeTab = 'tables'" :class="activeTab === 'tables' ? 'bg-accent text-white shadow' : 'text-slate-300 hover:text-white'" class="px-4 py-2 rounded-md text-xs sm:text-sm font-bold transition-all">
                         <i class="fa-solid fa-table-cells mr-1.5"></i> Столы D16
@@ -195,68 +198,54 @@
     <!-- ОСНОВНОЙ КОНТЕНТ КАТАЛОГА -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
 
-        <!-- ================= ВКЛАДКА 1: СВАРОЧНЫЕ СТОЛЫ ================= -->
+        <!-- ВКЛАДКА 1: СТОЛЫ D16 -->
         <div x-show="activeTab === 'tables'" x-transition.opacity>
-            <!-- Блок фильтров столов -->
             <div class="bg-white border border-slate-200 rounded-xl p-5 sm:p-6 mb-8 shadow-sm">
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-end">
                     
-                    <!-- 1. Выбор стали и покрытия -->
                     <div class="lg:col-span-4">
-                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Сталь и защитное покрытие</label>
-                        <select x-model="selectedMaterial" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-3.5 py-2.5 text-sm font-medium focus:border-accent focus:ring-1 focus:ring-accent outline-none">
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Сталь и покрытие</label>
+                        <select x-model="selectedMaterial" class="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-lg px-3.5 py-2.5 text-sm font-medium focus:border-accent outline-none">
                             <option value="09g2s">Конструкционная сталь 09Г2С</option>
                             <option value="ssab">Шведская износостойкая сталь SSAB</option>
                             <option value="nitro">Плазменное азотирование</option>
                         </select>
                     </div>
 
-                    <!-- 2. ДВУХПОЗИЦИОННЫЙ ПЕРЕКЛЮЧАТЕЛЬ ОПОР (ПОНЯТНОЕ ВКЛ/ВЫКЛ) -->
                     <div class="lg:col-span-3">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Комплектация опорами</label>
                         <div class="grid grid-cols-2 p-1 bg-slate-100 border border-slate-300 rounded-lg">
-                            <button type="button"
-                                    @click="withLegs = false"
-                                    :class="!withLegs ? 'bg-white text-slate-900 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-900 font-medium'"
-                                    class="py-2 text-xs rounded-md transition-all flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-minus text-[10px]" :class="!withLegs ? 'text-slate-400' : 'text-transparent'"></i>
+                            <button type="button" @click="withLegs = false" :class="!withLegs ? 'bg-white text-slate-900 font-bold shadow-sm' : 'text-slate-500 hover:text-slate-900 font-medium'" class="py-2 text-xs rounded-md transition-all flex items-center justify-center gap-1">
                                 Без опор
                             </button>
-                            <button type="button"
-                                    @click="withLegs = true"
-                                    :class="withLegs ? 'bg-accent text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-900 font-medium'"
-                                    class="py-2 text-xs rounded-md transition-all flex items-center justify-center gap-1.5">
-                                <i class="fa-solid fa-check text-[11px]" :class="withLegs ? 'text-white' : 'text-transparent'"></i>
+                            <button type="button" @click="withLegs = true" :class="withLegs ? 'bg-accent text-white font-bold shadow-sm' : 'text-slate-500 hover:text-slate-900 font-medium'" class="py-2 text-xs rounded-md transition-all flex items-center justify-center gap-1">
                                 С опорами
                             </button>
                         </div>
                     </div>
 
-                    <!-- 3. Выбор толщины столешницы -->
                     <div class="lg:col-span-3">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Толщина плиты</label>
                         <div class="grid grid-cols-4 gap-1">
-                            <button type="button" @click="selectedThickness = 'all'" :class="selectedThickness === 'all' ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" class="border py-2 text-xs font-bold rounded-lg transition-colors">Все</button>
-                            <button type="button" @click="selectedThickness = 8" :class="selectedThickness === 8 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" class="border py-2 text-xs font-bold rounded-lg transition-colors">8 мм</button>
-                            <button type="button" @click="selectedThickness = 10" :class="selectedThickness === 10 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" class="border py-2 text-xs font-bold rounded-lg transition-colors">10 мм</button>
-                            <button type="button" @click="selectedThickness = 12" :class="selectedThickness === 12 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300 hover:bg-slate-100'" class="border py-2 text-xs font-bold rounded-lg transition-colors">12 мм</button>
+                            <button type="button" @click="selectedThickness = 'all'" :class="selectedThickness === 'all' ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300'" class="border py-2 text-xs font-bold rounded-lg transition-colors">Все</button>
+                            <button type="button" @click="selectedThickness = 8" :class="selectedThickness === 8 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300'" class="border py-2 text-xs font-bold rounded-lg transition-colors">8 мм</button>
+                            <button type="button" @click="selectedThickness = 10" :class="selectedThickness === 10 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300'" class="border py-2 text-xs font-bold rounded-lg transition-colors">10 мм</button>
+                            <button type="button" @click="selectedThickness = 12" :class="selectedThickness === 12 ? 'bg-accent text-white border-accent' : 'bg-slate-50 text-slate-700 border-slate-300'" class="border py-2 text-xs font-bold rounded-lg transition-colors">12 мм</button>
                         </div>
                     </div>
 
-                    <!-- 4. Выбор серии: Стандарт / ПРО -->
                     <div class="lg:col-span-2">
                         <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Серия</label>
                         <div class="grid grid-cols-3 gap-1">
-                            <button type="button" @click="selectedSeries = 'all'" :class="selectedSeries === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100'" class="py-2 text-xs font-bold rounded-lg transition-colors">Все</button>
-                            <button type="button" @click="selectedSeries = 'Стандарт'" :class="selectedSeries === 'Стандарт' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100'" class="py-2 text-xs font-bold rounded-lg transition-colors">Стд</button>
-                            <button type="button" @click="selectedSeries = 'ПРО'" :class="selectedSeries === 'ПРО' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300 hover:bg-slate-100'" class="py-2 text-xs font-bold rounded-lg transition-colors">ПРО</button>
+                            <button type="button" @click="selectedSeries = 'all'" :class="selectedSeries === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300'" class="py-2 text-xs font-bold rounded-lg transition-colors">Все</button>
+                            <button type="button" @click="selectedSeries = 'Стандарт'" :class="selectedSeries === 'Стандарт' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300'" class="py-2 text-xs font-bold rounded-lg transition-colors">Стд</button>
+                            <button type="button" @click="selectedSeries = 'ПРО'" :class="selectedSeries === 'ПРО' ? 'bg-slate-900 text-white' : 'bg-slate-50 text-slate-700 border border-slate-300'" class="py-2 text-xs font-bold rounded-lg transition-colors">ПРО</button>
                         </div>
                     </div>
 
                 </div>
             </div>
 
-            <!-- Сетка карточек столов -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <template x-for="item in filteredTables" :key="item.id">
                     <div class="card-equipment bg-white border border-slate-200 rounded-xl p-6 flex flex-col justify-between relative shadow-sm">
@@ -267,16 +256,12 @@
                             </div>
 
                             <h3 class="text-lg font-extrabold text-slate-900 mb-1" x-text="'Стол D16 ' + item.dim"></h3>
-                            <p class="text-xs text-slate-500 mb-4">Координатные отверстия Ø16 мм с шагом сетки 50×50 мм</p>
+                            <p class="text-xs text-slate-500 mb-4">Сетка 50×50 мм · 5 рабочих сторон</p>
 
                             <div class="bg-slate-50 rounded-lg p-3 text-xs text-slate-700 flex flex-col gap-2 mb-6 border border-slate-100">
                                 <div class="flex justify-between">
                                     <span class="text-slate-500">Толщина столешницы:</span>
                                     <strong class="text-slate-900" x-text="item.thickness + ' мм'"></strong>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-slate-500">Габариты поля:</span>
-                                    <strong class="text-slate-900" x-text="item.dim.split('х100')[0] + ' мм'"></strong>
                                 </div>
                                 <div class="flex justify-between items-center pt-1 border-t border-slate-200">
                                     <span class="text-slate-500">Комплектация:</span>
@@ -296,11 +281,11 @@
 
                         <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
                             <div>
-                                <span class="block text-[11px] text-slate-400">Итоговая стоимость</span>
+                                <span class="block text-[11px] text-slate-400">Стоимость</span>
                                 <span class="text-lg font-black text-slate-900" x-text="formatPrice(getPrice(item))"></span>
                             </div>
-                            <button @click="$store.app.openModal(item.name + ' [' + item.art + ']' + (withLegs ? ' (в сборе с опорами)' : ' (без опор)'))" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors">
-                                Запросить счет
+                            <button @click="addTableToCart(item)" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs font-bold px-4 py-2.5 rounded-lg transition-colors flex items-center gap-1.5">
+                                <i class="fa-solid fa-cart-plus"></i> В корзину
                             </button>
                         </div>
                     </div>
@@ -308,7 +293,7 @@
             </div>
         </div>
 
-        <!-- ================= ВКЛАДКА 2: ГОТОВЫЕ КОМПЛЕКТЫ ================= -->
+        <!-- ВКЛАДКА 2: ГОТОВЫЕ КОМПЛЕКТЫ -->
         <div x-show="activeTab === 'kits'" x-transition.opacity>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <template x-for="kit in kits" :key="kit.id">
@@ -323,11 +308,11 @@
                         </div>
                         <div class="pt-5 border-t border-slate-100 flex items-center justify-between">
                             <div>
-                                <span class="block text-xs text-slate-400">Цена за весь комплект</span>
+                                <span class="block text-xs text-slate-400">Цена комплекта</span>
                                 <span class="text-2xl font-black text-slate-900" x-text="formatPrice(kit.price)"></span>
                             </div>
-                            <button @click="$store.app.openModal(kit.name)" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs sm:text-sm font-bold px-5 py-3 rounded-lg transition-colors">
-                                Заказать набор
+                            <button @click="$store.cart.addItem({ id: kit.id, name: kit.name, article: 'KIT-D16', price: kit.price, qty: 1, details: kit.items_count + ' предметов' })" class="btn-glow bg-accent hover:bg-accent-light text-white text-xs sm:text-sm font-bold px-5 py-3 rounded-lg transition-colors flex items-center gap-2">
+                                <i class="fa-solid fa-cart-plus"></i> В корзину
                             </button>
                         </div>
                     </div>
@@ -335,16 +320,16 @@
             </div>
         </div>
 
-        <!-- ================= ВКЛАДКА 3: ОСНАСТКА И ИНСТРУМЕНТ ================= -->
+        <!-- ВКЛАДКА 3: ОСНАСТКА -->
         <div x-show="activeTab === 'tooling'" x-transition.opacity>
             <div class="flex flex-wrap items-center gap-2 mb-8">
-                <button @click="toolingCat = 'all'" :class="toolingCat === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Все комплектующие</button>
-                <button @click="toolingCat = 'clamps'" :class="toolingCat === 'clamps' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Струбцины и зажимы</button>
-                <button @click="toolingCat = 'bolts'" :class="toolingCat === 'bolts' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Болты и фиксаторы</button>
-                <button @click="toolingCat = 'stops'" :class="toolingCat === 'stops' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Упоры</button>
-                <button @click="toolingCat = 'squares'" :class="toolingCat === 'squares' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Угольники</button>
-                <button @click="toolingCat = 'prisms'" :class="toolingCat === 'prisms' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Призмы</button>
-                <button @click="toolingCat = 'accessories'" :class="toolingCat === 'accessories' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'" class="px-4 py-2 rounded-lg text-xs font-bold transition-colors">Тележки и химия</button>
+                <button @click="toolingCat = 'all'" :class="toolingCat === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-4 py-2 rounded-lg text-xs font-bold">Все комплектующие</button>
+                <button @click="toolingCat = 'clamps'" :class="toolingCat === 'clamps' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-4 py-2 rounded-lg text-xs font-bold">Струбцины</button>
+                <button @click="toolingCat = 'bolts'" :class="toolingCat === 'bolts' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-4 py-2 rounded-lg text-xs font-bold">Болты</button>
+                <button @click="toolingCat = 'stops'" :class="toolingCat === 'stops' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-4 py-2 rounded-lg text-xs font-bold">Упоры</button>
+                <button @click="toolingCat = 'squares'" :class="toolingCat === 'squares' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-4 py-2 rounded-lg text-xs font-bold">Угольники</button>
+                <button @click="toolingCat = 'prisms'" :class="toolingCat === 'prisms' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-4 py-2 rounded-lg text-xs font-bold">Призмы</button>
+                <button @click="toolingCat = 'accessories'" :class="toolingCat === 'accessories' ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 border border-slate-200'" class="px-4 py-2 rounded-lg text-xs font-bold">Аксессуары</button>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -359,8 +344,8 @@
                         </div>
                         <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
                             <span class="text-base font-extrabold text-slate-900" x-text="formatPrice(item.price)"></span>
-                            <button @click="$store.app.openModal(item.name + ' [' + item.art + ']')" class="bg-slate-100 hover:bg-accent hover:text-white text-slate-800 text-xs font-bold px-3 py-2 rounded-md transition-colors">
-                                В заявку
+                            <button @click="$store.cart.addItem({ id: item.id, name: item.name, article: item.art, price: item.price, qty: 1, details: 'Оснастка d16' })" class="bg-slate-100 hover:bg-accent hover:text-white text-slate-800 text-xs font-bold px-3 py-2 rounded-md transition-colors flex items-center gap-1">
+                                <i class="fa-solid fa-plus"></i> В корзину
                             </button>
                         </div>
                     </div>
@@ -370,74 +355,107 @@
 
     </main>
 
-    <!-- FOOTER -->
-    <footer class="bg-slate-900 border-t border-slate-800 text-slate-400 mt-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                <div>
-                    <div class="flex items-center gap-3 mb-4">
-                        <div class="w-8 h-8 rounded bg-accent flex items-center justify-center text-white"><i class="fa-solid fa-fire"></i></div>
-                        <span class="text-base font-extrabold text-white">СТАРК-ПРОФИ</span>
+    <!-- ================= ВЫЕЗЖАЮЩАЯ КОРЗИНА (DRAWER) ================= -->
+    <div x-show="$store.cart.isOpen" x-cloak class="relative z-[100]">
+        <!-- Затемнение фона -->
+        <div x-show="$store.cart.isOpen" x-transition.opacity class="fixed inset-0 bg-slate-950/70 backdrop-blur-sm" @click="$store.cart.close()"></div>
+
+        <!-- Боковая панель -->
+        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
+            <div x-show="$store.cart.isOpen" x-transition:enter="transform transition ease-in-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-300" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="w-screen max-w-md bg-white shadow-2xl flex flex-col">
+                
+                <!-- Шапка корзины -->
+                <div class="p-6 bg-slate-900 text-white flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-cart-shopping text-accent text-lg"></i>
+                        <h2 class="text-lg font-bold">Спецификация заказа</h2>
                     </div>
-                    <p class="text-xs leading-relaxed">Производство сварочных столов D16 и D28. Поставки предприятиям металлообработки по всей России с выделением НДС 20%.</p>
+                    <button @click="$store.cart.close()" class="text-slate-400 hover:text-white text-xl leading-none">&times;</button>
                 </div>
-                <div>
-                    <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-3">Разделы</h4>
-                    <ul class="flex flex-col gap-2 text-xs">
-                        <li><a href="catalog.html" class="hover:text-accent">Каталог столов D16</a></li>
-                        <li><a href="technology.html" class="hover:text-accent">Плазменное азотирование</a></li>
-                        <li><a href="delivery.html" class="hover:text-accent">Доставка и оплата</a></li>
-                    </ul>
+
+                <!-- Список товаров в корзине -->
+                <div class="flex-1 overflow-y-auto p-6 flex flex-col gap-4">
+                    <template x-if="$store.cart.items.length === 0">
+                        <div class="text-center py-16 text-slate-400 flex flex-col items-center">
+                            <i class="fa-solid fa-basket-shopping text-5xl mb-4 text-slate-300"></i>
+                            <p class="font-medium text-slate-600">Ваша корзина пуста</p>
+                            <p class="text-xs text-slate-400 mt-1">Выберите нужные столы или оснастку в каталоге</p>
+                        </div>
+                    </template>
+
+                    <template x-for="item in $store.cart.items" :key="item.id">
+                        <div class="border border-slate-200 rounded-lg p-4 flex flex-col gap-2 bg-slate-50 relative">
+                            <div class="flex justify-between items-start pr-6">
+                                <div>
+                                    <h4 class="text-xs font-bold text-slate-900" x-text="item.name"></h4>
+                                    <p class="text-[11px] text-accent font-medium mt-0.5" x-text="item.details"></p>
+                                    <span class="text-[10px] text-slate-400 font-mono" x-show="item.article" x-text="'Арт: ' + item.article"></span>
+                                </div>
+                                <button @click="$store.cart.removeItem(item.id)" class="absolute top-3 right-3 text-slate-400 hover:text-red-500 text-xs">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+
+                            <div class="flex justify-between items-center pt-2 border-t border-slate-200 text-xs">
+                                <div class="flex items-center border border-slate-300 rounded bg-white">
+                                    <button @click="$store.cart.changeQty(item.id, -1)" class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 font-bold">-</button>
+                                    <span class="px-3 py-1 font-semibold text-slate-800" x-text="item.qty"></span>
+                                    <button @click="$store.cart.changeQty(item.id, 1)" class="px-2.5 py-1 text-slate-600 hover:bg-slate-100 font-bold">+</button>
+                                </div>
+                                <span class="font-bold text-slate-900 text-sm" x-text="(item.price * item.qty).toLocaleString('ru-RU') + ' ₽'"></span>
+                            </div>
+                        </div>
+                    </template>
                 </div>
-                <div>
-                    <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-3">Контакты завода</h4>
-                    <ul class="flex flex-col gap-2 text-xs">
-                        <li><i class="fa-solid fa-phone text-accent w-4"></i> 8-800-101-55-53</li>
-                        <li><i class="fa-regular fa-envelope text-accent w-4"></i> info@stark-profi.ru</li>
-                        <li><i class="fa-solid fa-globe text-accent w-4"></i> stark-profi.ru</li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="text-xs font-bold text-white uppercase tracking-wider mb-3">Спецификация</h4>
-                    <p class="text-xs leading-relaxed mb-3">Нужен нестандартный размер стола или расчет оснастки под чертеж?</p>
-                    <button @click="$store.app.openModal('Консультация инженера')" class="w-full bg-accent hover:bg-accent-light text-white text-xs font-bold py-2 rounded transition-colors">
-                        Связаться с инженером
+
+                <!-- Подвал корзины с итогом -->
+                <div x-show="$store.cart.items.length > 0" class="p-6 border-t border-slate-200 bg-slate-50 flex flex-col gap-4">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-slate-500">Итого с НДС 20%:</span>
+                        <span class="text-2xl font-black text-slate-900" x-text="$store.cart.totalPrice.toLocaleString('ru-RU') + ' ₽'"></span>
+                    </div>
+
+                    <button @click="$store.cart.close(); $store.app.openModal('Оформление корзины')" class="btn-glow w-full bg-accent hover:bg-accent-light text-white font-bold py-3.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2 shadow-lg">
+                        <i class="fa-solid fa-file-signature"></i> Оформить счет со спецификацией
+                    </button>
+
+                    <button @click="$store.cart.clear()" class="text-center text-xs text-slate-400 hover:text-red-500">
+                        Очистить список
                     </button>
                 </div>
+
             </div>
         </div>
-        <div class="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
-            © 2026 СТАРК-ПРОФИ. Все права защищены.
-        </div>
-    </footer>
+    </div>
 
-    <!-- MODAL WINDOW ЗАПРОСА КП -->
-    <div x-show="$store.app.isModalOpen" x-cloak class="fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <!-- MODAL WINDOW ЗАПРОСА СЧЕТА (ЕДИНОЕ ДЛЯ КОРЗИНЫ И БЫСТРОГО ЗАКАЗА) -->
+    <div x-show="$store.app.isModalOpen" x-cloak class="fixed inset-0 z-[110] flex items-center justify-center p-4">
         <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm" @click="$store.app.closeModal()"></div>
         <div class="relative w-full max-w-lg rounded-xl bg-white shadow-2xl overflow-hidden z-10" @click.outside="$store.app.closeModal()">
             <div class="flex items-center justify-between bg-slate-900 px-6 py-4">
-                <h3 class="text-base font-bold text-white">Запрос счета / Коммерческого предложения</h3>
+                <h3 class="text-base font-bold text-white">Выставление счета с НДС 20%</h3>
                 <button @click="$store.app.closeModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <form class="p-6 flex flex-col gap-4 text-sm" @submit.prevent="alert('Заявка на позицию ' + ($store.app.selectedSystem || 'из каталога') + ' принята! Менеджер подготовит спецификацию с НДС.'); $store.app.closeModal()">
+            
+            <form class="p-6 flex flex-col gap-4 text-sm" @submit.prevent="alert('Заказ успешно отправлен в отдел продаж!\n\nСпецификация:\n' + ($store.cart.items.length > 0 ? $store.cart.orderSummaryText : $store.app.selectedSystem)); $store.cart.clear(); $store.app.closeModal()">
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1 text-xs">Выбранная позиция из каталога</label>
-                    <input type="text" :value="$store.app.selectedSystem || 'Сварочный стол / Оснастка d16'" class="w-full bg-slate-100 border border-slate-300 rounded-md px-3.5 py-2 text-slate-800 text-xs font-semibold outline-none" readonly>
+                    <label class="block font-semibold text-slate-700 mb-1 text-xs">Состав заказа</label>
+                    <textarea rows="3" class="w-full bg-slate-100 border border-slate-300 rounded-md p-2 text-slate-800 text-xs font-mono outline-none resize-none" readonly x-text="$store.cart.items.length > 0 ? $store.cart.orderSummaryText : ($store.app.selectedSystem || 'Сварочные столы D16')"></textarea>
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1 text-xs">ФИО представителя *</label>
-                    <input type="text" required placeholder="Константин" class="w-full border border-slate-300 rounded-md px-3.5 py-2 focus:border-accent outline-none text-xs">
+                    <label class="block font-semibold text-slate-700 mb-1 text-xs">ФИО представителя или снабженца *</label>
+                    <input type="text" required placeholder="Михаил" class="w-full border border-slate-300 rounded-md px-3.5 py-2 focus:border-accent outline-none text-xs">
                 </div>
                 <div>
                     <label class="block font-semibold text-slate-700 mb-1 text-xs">Телефон *</label>
                     <input type="tel" required placeholder="+7 (___) ___-__-__" x-mask="+7 (999) 999-99-99" class="w-full border border-slate-300 rounded-md px-3.5 py-2 focus:border-accent outline-none text-xs">
                 </div>
                 <div>
-                    <label class="block font-semibold text-slate-700 mb-1 text-xs">ИНН организации или название компании *</label>
-                    <input type="text" required placeholder="Для выставления счета с НДС 20%" class="w-full border border-slate-300 rounded-md px-3.5 py-2 focus:border-accent outline-none text-xs">
+                    <label class="block font-semibold text-slate-700 mb-1 text-xs">ИНН организации или карточка предприятия *</label>
+                    <input type="text" required placeholder="ИНН юрлица для выставления счета" class="w-full border border-slate-300 rounded-md px-3.5 py-2 focus:border-accent outline-none text-xs">
                 </div>
                 <button type="submit" class="btn-glow bg-accent hover:bg-accent-light text-white font-bold py-3 rounded-md transition-colors mt-2 text-xs uppercase tracking-wider">
-                    Получить счет со спецификацией
+                    Получить официальный счет и договор
                 </button>
             </form>
         </div>
